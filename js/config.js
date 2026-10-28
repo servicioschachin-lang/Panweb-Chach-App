@@ -8,16 +8,16 @@ export const CONFIG = {
   STORE_KEY: 'creaweb_estado_v1',
   RESERVADOS: ['www', 'admin', 'mail', 'correo', 'ftp', 'api', 'app', 'panel', 'creaweb', 'soporte', 'ayuda', 'test'],
   TEMPLATES: [
-    { nombre: 'Plantilla 01', url: 'plantillas/glassmorfismo_landing.html' },
-    { nombre: 'Plantilla 02', url: 'plantillas/neumorfismo_multipage.html' },
-    { nombre: 'Plantilla 03', url: 'plantillas/minimalismo_landing.html' },
-    { nombre: 'Plantilla 04', url: 'plantillas/brutalismo_multipage.html' },
-    { nombre: 'Plantilla 05', url: 'plantillas/claymorfismo_multipage.html' },
-    { nombre: 'Plantilla 06', url: 'plantillas/glassmorfismo_multipage.html' },
-    { nombre: 'Plantilla 07', url: 'plantillas/neumorfismo_landing.html' },
-    { nombre: 'Plantilla 08', url: 'plantillas/minimalismo_multipage.html' },
-    { nombre: 'Plantilla 09', url: 'plantillas/brutalismo_landing.html' },
-    { nombre: 'Plantilla 10', url: 'plantillas/claymorfismo_landing.html' },
+    { nombre: 'Plantilla 01', url: 'plantillas/glassmorphism_landing.html' },
+    { nombre: 'Plantilla 02', url: 'plantillas/neumorphism_multipage.html' },
+    { nombre: 'Plantilla 03', url: 'plantillas/minimalism_landing.html' },
+    { nombre: 'Plantilla 04', url: 'plantillas/brutalism_multipage.html' },
+    { nombre: 'Plantilla 05', url: 'plantillas/claymorphism_multipage.html' },
+    { nombre: 'Plantilla 06', url: 'plantillas/glassmorphism_multipage.html' },
+    { nombre: 'Plantilla 07', url: 'plantillas/neumorphism_landing.html' },
+    { nombre: 'Plantilla 08', url: 'plantillas/minimalism_multipage.html' },
+    { nombre: 'Plantilla 09', url: 'plantillas/brutalism_landing.html' },
+    { nombre: 'Plantilla 10', url: 'plantillas/claymorphism_landing.html' },
   ]
 };
 
