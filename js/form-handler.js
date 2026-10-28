@@ -9,25 +9,55 @@ export class FormHandler {
   }
 
   init() {
+    this.loadDominios();
     this.attachEvents();
-    this.setupFormspree();
+    this.attachModalEvents();
+  }
+
+  loadDominios() {
+    const select = $('#fDominio');
+    if (!select) return;
+    select.innerHTML = '';
+    CONFIG.DOMINIO.forEach(dominio => {
+      const option = document.createElement('option');
+      option.value = dominio;
+      option.textContent = dominio;
+      if (dominio === CONFIG.DOMINIO_DEFAULT) option.selected = true;
+      select.appendChild(option);
+    });
   }
 
   attachEvents() {
     $('#fSub').addEventListener('input', (e) => {
       const v = cleanSubdomain(e.target.value);
       e.target.value = v;
-      $('#subVista').textContent = (v || 'ejemplo') + '.' + CONFIG.DOMINIO;
+      this.updateSubVista();
     });
 
+    $('#fDominio').addEventListener('change', () => {
+      this.updateSubVista();
+    });
+
+    this.updateSubVista();
+  }
+
+  updateSubVista() {
+    const sub = cleanSubdomain($('#fSub').value) || 'ejemplo';
+    const dominio = $('#fDominio').value || CONFIG.DOMINIO_DEFAULT;
+    $('#subVista').textContent = sub + '.' + dominio;
+  }
+
+  attachModalEvents() {
     $('#btnPublicar').addEventListener('click', () => {
       const estado = this.editor.getEstado();
       if (!estado) return;
       $('#fPlantilla').value = estado.nombre;
       $('#pubErr').style.display = 'none';
       $('#pubOk').style.display = 'none';
+      $('#pubInforme').style.display = 'none';
       $('#pubCampos').style.display = 'block';
       $('#btnEnviar').style.display = '';
+      $('#btnDescargarHtml').style.display = '';
       this.modal.show();
     });
 
@@ -35,12 +65,23 @@ export class FormHandler {
       e.preventDefault();
       await this.handleSubmit(e);
     });
+
+    $('#btnDescargarHtml').addEventListener('click', () => {
+      const estado = this.editor.getEstado();
+      if (!estado) return;
+      const html = this.editor.getHTML();
+      const sub = cleanSubdomain($('#fSub').value) || 'miweb';
+      downloadFile(html, sub + '.html');
+    });
+
+    $('#btnNuevaPublicacion').addEventListener('click', () => this.reiniciarPublicacion());
   }
 
   async handleSubmit(e) {
     const btn = $('#btnEnviar');
     const err = $('#pubErr');
     const sub = cleanSubdomain($('#fSub').value).replace(/-+$/, '');
+    const dominio = $('#fDominio').value || CONFIG.DOMINIO_DEFAULT;
     const mostrarErr = (m) => {
       err.textContent = m;
       err.style.display = 'block';
@@ -58,27 +99,95 @@ export class FormHandler {
       if (html.length > CONFIG.LIMITE_HTML) {
         html = await this.compressImages(html);
       }
-      const muyPesado = html.length > CONFIG.LIMITE_HTML;
 
-      $('#fSubCompleto').value = sub + '.' + CONFIG.DOMINIO;
-      $('#fPlantillaOrigen').value = this.editor.getEstado().url;
-      $('#fFecha').value = new Date().toLocaleString('es-GT');
-      $('#fTamano').value = String(Math.round(html.length / 1024));
-      $('#fSubject').value = 'Nueva web: ' + sub + '.' + CONFIG.DOMINIO + ' · CreaWeb';
+      const negocio = $('#fNegocio').value || 'No especificado';
+      const nombre = $('#fNombre').value || 'No especificado';
+      const email = $('#fEmail').value || 'No especificado';
+      const whatsapp = $('#fWhats').value || 'No especificado';
+      const mensaje = $('#fMsg').value || 'Sin mensaje adicional';
+      const resumen = $('#fResumen').value || 'Sin resumen';
+      const nombrePlantilla = this.editor.getEstado().nombre;
+      const fecha = new Date().toLocaleString('es-GT');
+      const tamano = String(Math.round(html.length / 1024));
+      const subCompleto = `${sub}.${dominio}`;
 
-      if (muyPesado) {
-        $('#fHtmlFinal').value = '(HTML demasiado pesado - archivo descargado)';
-        downloadFile(html, sub + '.html');
-      } else {
-        $('#fHtmlFinal').value = html;
-      }
+      // 1. Descargar automáticamente el HTML final
+      downloadFile(html, sub + '.html');
 
-      btn.textContent = 'Enviando…';
+      // 2. Mensaje de WhatsApp: solo resumen limpio (sin HTML largo que se truncara)
+      const mensajeWhatsApp = `
+🌐 *SOLICITUD DE PUBLICACIÓN WEB*
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 *DATOS DEL NEGOCIO*
+• Negocio: ${negocio}
+• Subdominio: ${subCompleto}
+• Plantilla: ${nombrePlantilla}
+
+👤 *DATOS DE CONTACTO*
+• Nombre: ${nombre}
+• Email: ${email}
+• WhatsApp: ${whatsapp}
+
+📝 *RESUMEN*
+${resumen}
+
+💬 *MENSAJE ADICIONAL*
+${mensaje}
+
+📊 *TÉCNICO*
+• Fecha: ${fecha}
+• Tamaño HTML: ${tamano} KB
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+⬇️ El archivo HTML completo se descarga automáticamente al enviar.
+      `.trim();
+
+      // Codificar mensaje para URL
+      const mensajeCodificado = encodeURIComponent(mensajeWhatsApp);
+
+      // Abrir WhatsApp
+      const whatsappUrl = `https://wa.me/${CONFIG.WHATSAPP_SUPPORT}?text=${mensajeCodificado}`;
+      window.open(whatsappUrl, '_blank');
+
+      // 3. Mostrar informe de pasos a tomar
+      this.mostrarInforme(subCompleto, negocio, fecha);
+
+      btn.disabled = false;
+      btn.textContent = 'Enviar';
     } catch (x) {
       mostrarErr('Error: ' + x.message);
       btn.disabled = false;
       btn.textContent = 'Enviar';
     }
+  }
+
+  mostrarInforme(subCompleto, negocio, fecha) {
+    $('#pubCampos').style.display = 'none';
+    $('#pubOk').style.display = 'none';
+    $('#btnEnviar').style.display = 'none';
+    $('#btnDescargarHtml').style.display = 'none';
+    $('#formPublicar').reset();
+
+    $('#informeSubdominio').textContent = subCompleto;
+    $('#informeNegocio').textContent = negocio ? `Negocio: ${negocio}` : '';
+    $('#informeUrl').textContent = `https://${subCompleto}`;
+    $('#informeFecha').textContent = `Fecha: ${fecha}`;
+
+    $('#pubInforme').style.display = 'block';
+  }
+
+  reiniciarPublicacion() {
+    $('#pubInforme').style.display = 'none';
+    $('#pubCampos').style.display = 'block';
+    $('#pubErr').style.display = 'none';
+    $('#btnEnviar').style.display = '';
+    $('#btnDescargarHtml').style.display = '';
+    $('#formPublicar').reset();
+    this.loadDominios();
+    this.updateSubVista();
   }
 
   async compressImages(html) {
@@ -103,35 +212,6 @@ export class FormHandler {
       }
     }
     return html;
-  }
-
-  setupFormspree() {
-    if (typeof formspree !== 'undefined') {
-      formspree('initForm', { formElement: '#formPublicar', formId: 'xrengvqb' });
-      formspree('onSubmit', () => {
-        const sub = $('#fSub').value.replace(/-+$/, '');
-        const muyPesado = $('#fHtmlFinal').value.includes('demasiado pesado');
-        if (muyPesado) {
-          $('#pubOkTxt').textContent = 'Recibimos tus datos. Tu HTML es muy pesado: se descargó el archivo. Envíanoslo por WhatsApp o correo.';
-        } else {
-          $('#pubOkTxt').textContent = 'Recibimos tus datos y tu HTML final. Tu web será ' + sub + '.' + CONFIG.DOMINIO + '. Te contactaremos pronto.';
-        }
-        $('#pubCampos').style.display = 'none';
-        $('#pubOk').style.display = 'block';
-        $('#btnEnviar').style.display = 'none';
-        $('#formPublicar').reset();
-        $('#subVista').textContent = 'ejemplo.' + CONFIG.DOMINIO;
-      });
-
-      formspree('onError', (event) => {
-        const err = $('#pubErr');
-        const messages = event.errors ? event.errors.map(e => e.message).join(', ') : 'No se pudo enviar. Intenta de nuevo.';
-        err.textContent = messages;
-        err.style.display = 'block';
-        $('#btnEnviar').disabled = false;
-        $('#btnEnviar').textContent = 'Enviar';
-      });
-    }
   }
 
   setModal(modal) {
